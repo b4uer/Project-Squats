@@ -33,10 +33,10 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
     while cap.isOpened():
         ret, frame = cap.read()
 
-        # if not ret:
-        #     print("Ignoring empty camera frame.")
-        #     # If loading a video, use 'break' instead of 'continue'.
-        #     continue
+        if not ret:
+            print("Ignoring empty camera frame.")
+            # If loading a video, use 'break' instead of 'continue'.
+            continue
 
         # Recolor image to RGB
         image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -96,8 +96,8 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
             # Visualize angle
             cv2.putText(image, str(knee_angle),
                         tuple(np.multiply(knee, [640, 480]).astype(int)),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,
-                                                        255, 255), 2, cv2.LINE_AA
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (10,
+                                                        245, 37), 2, cv2.LINE_AA
                         )
 
             # Visualize angle
@@ -120,20 +120,13 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
 
         # Render curl counter
         # Setup status box
-        cv2.rectangle(image, (0, 0), (225, 73), (0, 0, 0), -1)
+        cv2.rectangle(image, (0, 0), (100, 73), (0, 0, 0), -1)
 
         # Rep data
         cv2.putText(image, 'REPS', (15, 12),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (245, 117, 16), 1, cv2.LINE_AA)
         cv2.putText(image, str(counter),
                     (10, 60),
-                    cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 255, 255), 2, cv2.LINE_AA)
-
-        # Stage data
-        cv2.putText(image, 'STAGE', (65, 12),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (245, 117, 16), 1, cv2.LINE_AA)
-        cv2.putText(image, stage,
-                    (60, 60),
                     cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 255, 255), 2, cv2.LINE_AA)
 
         # Render detections
