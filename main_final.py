@@ -79,7 +79,7 @@ def draw_window(surface, counter=0, knee_mistake=0):
     pygame.display.update()
 
 
-def draw_feedback(surface, knee_mistake):
+def draw_feedback(surface, knee_mistake, shoulder_check, hips_check):
     surface.fill((50, 0, 100))
 
     pygame.font.init()
@@ -96,7 +96,7 @@ def draw_feedback(surface, knee_mistake):
     img_check = pygame.image.load("GreenCheck.png").convert_alpha()
     img_cross = pygame.image.load("RedCross.png").convert_alpha()
 
-    print(knee_mistake)
+    print(shoulder_check)
     # display green check or red cross
     if neck_check:
         screen.blit(img_check, (s_width / 2 - 500, s_height / 2 - 320))
@@ -128,6 +128,10 @@ def main(screen):
 
     counter = 0
     knee_mistake = 0
+
+    shoulder_check = True
+    hips_check = True
+    knee_check = True
 
     # Setup mediapipe instance
     with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
@@ -208,10 +212,10 @@ def main(screen):
                             )
 
                 # Curl counter logic
-                if knee_angle > 100:
+                if knee_angle > 120:
                     stage = "up"
                     knee_check = True
-                if knee_angle < 70 and stage == "up":
+                if knee_angle < 95 and stage == "up":
                     stage = "down"
                     counter += 1
 
@@ -220,8 +224,10 @@ def main(screen):
                     knee_mistake += 1
                 if abs(knee_angle - hip_angle) > 40:
                     hips_check = False
-                if abs(shoulder[1] - other_shoulder[1])*100 > 10:
+                if abs(shoulder[1] - other_shoulder[1])*100 > 15:
                     shoulder_check = False
+
+                print(shoulder_check)
 
             except:
                 pass
@@ -255,7 +261,7 @@ def main(screen):
 
             draw_window(screen, counter, knee_mistake)
 
-            if counter == 10:
+            if counter == 4:
                 cam.release()
                 cv2.destroyWindow("WebCam")
 
@@ -266,7 +272,7 @@ def main(screen):
 
     run = True
     while run:
-        draw_feedback(screen, knee_mistake)
+        draw_feedback(screen, knee_mistake, shoulder_check, hips_check)
         # pygame.display.update()
 
         for event in pygame.event.get():
