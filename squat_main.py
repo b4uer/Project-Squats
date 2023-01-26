@@ -26,6 +26,7 @@ cap = cv2.VideoCapture(1)
 
 # Curl counter variables
 counter = 0
+knee_mistake = 0
 stage = None
 
 # Setup mediapipe instance
@@ -69,12 +70,17 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
             shoulder = [
                 landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x, landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y
             ]
+            other_shoulder = [
+                landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y
+            ]
             elbow = [
                 landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value].x, landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value].y
             ]
             wrist = [
                 landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].x, landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].y
             ]
+
+            # print(round(shoulder[1], 2), round(other_shoulder[1], 2))
 
             # Calculate angle
             angle = calculate_angle(shoulder, elbow, wrist)
@@ -92,10 +98,11 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
             #             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,
             #                                             255, 255), 2, cv2.LINE_AA
             #             )
-
+            angle_abs = abs(knee_angle - hip_angle)
             # Visualize angle
             cv2.putText(image, str(knee_angle),
-                        tuple(np.multiply(knee, [640, 480]).astype(int)),
+                        tuple(np.multiply(knee,
+                              [640, 480]).astype(int)),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (10,
                                                         245, 37), 2, cv2.LINE_AA
                         )
@@ -113,7 +120,17 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
             if knee_angle < 90 and stage == "up":
                 stage = "down"
                 counter += 1
-                print(counter)
+
+            if knee_angle < 40 and stage == "up":
+                knee_mistake += 1
+            print(knee_mistake)
+            # print(angle_abs)
+            # if abs(knee_angle - hip_angle) > 30:
+            #     print("BAD!!!!!!")
+
+            # print(abs(shoulder[1] - other_shoulder[1])*100)
+            # if abs(shoulder[1] - other_shoulder[1]) > 10:
+            #     print("BAD!!!!!!")
 
         except:
             pass

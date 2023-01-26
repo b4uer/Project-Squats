@@ -17,8 +17,12 @@ cam = cv2.VideoCapture(1)
 pygame.init()
 
 # Global variables
-# s_width = 1200
-# s_height = 800
+neck_check = True
+shoulder_check = True
+hips_check = True
+knee_check = True
+ankle_check = True
+knee_bended = True
 
 # screen = pygame.display.set_mode((s_width, s_height))
 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
@@ -31,6 +35,9 @@ print(s_width, s_height)
 
 # Curl counter variables
 counter = 0
+knee_mistake = 0
+stage = None
+buff_var = 0
 
 
 def calculate_angle(a, b, c):
@@ -49,35 +56,87 @@ def calculate_angle(a, b, c):
 
 
 # draw the main window
-def draw_window(surface, counter=0):
+def draw_window(surface, counter=0, knee_mistake=0):
     surface.fill((0, 0, 0))
 
     pygame.font.init()
     font = pygame.font.SysFont('britannic', 60)
     label = font.render('SquatCam', 1, (255, 255, 255))
 
-    surface.blit(label, (s_width / 2 + 200, 20))
+    surface.blit(label, (s_width / 2 + 200, s_height / 2 - 420))
 
     # show current reps
     font = pygame.font.SysFont('britannic', 40)
     label = font.render('reps: ' + str(counter), 1, (255, 255, 255))
+    surface.blit(label, (s_width / 2, s_height / 2 - 200))
 
-    surface.blit(label, (s_width - 200, 200))
+    # show knee mistakes
+    font = pygame.font.SysFont('britannic', 40)
+    label = font.render('knee bended too much: ' +
+                        str(knee_mistake), 1, (255, 255, 255))
+    surface.blit(label, (s_width / 2, s_height / 2 - 100))
+
+    pygame.display.update()
+
+
+def draw_feedback(surface, knee_mistake):
+    surface.fill((50, 0, 100))
+
+    pygame.font.init()
+    font = pygame.font.SysFont('britannic', 60)
+    label = font.render('Feedback', 1, (255, 255, 255))
+    surface.blit(label, (s_width / 2 - 30, s_height / 2 - 420))
+
+    # create a surface object, image is drawn on it.
+    imp = pygame.image.load("Feedback.png").convert()
+
+    # Using blit to copy content from one surface to other
+    screen.blit(imp, (s_width / 2 - 400, s_height / 2 - 330))
+
+    img_check = pygame.image.load("GreenCheck.png").convert_alpha()
+    img_cross = pygame.image.load("RedCross.png").convert_alpha()
+
+    print(knee_mistake)
+    # display green check or red cross
+    if neck_check:
+        screen.blit(img_check, (s_width / 2 - 500, s_height / 2 - 320))
+    else:
+        screen.blit(img_cross, (s_width / 2 - 500, s_height / 2 - 320))
+    if shoulder_check:
+        screen.blit(img_check, (s_width / 2 - 500, s_height / 2 - 170))
+    else:
+        screen.blit(img_cross, (s_width / 2 - 500, s_height / 2 - 170))
+    if hips_check:
+        screen.blit(img_check, (s_width / 2 - 500, s_height / 2))
+    else:
+        screen.blit(img_cross, (s_width / 2 - 500, s_height / 2))
+    if knee_mistake < 4:
+        screen.blit(img_check, (s_width / 2 - 500, s_height / 2 + 160))
+    else:
+        screen.blit(img_cross, (s_width / 2 - 500, s_height / 2 + 160))
+    if ankle_check:
+        screen.blit(img_check, (s_width / 2 - 500, s_height / 2 + 300))
+    else:
+        screen.blit(img_cross, (s_width / 2 - 500, s_height / 2 + 300))
+
+    # display
+    pygame.display.update()
 
 
 # THE MAIN FUNCTION THAT RUNS THE GAME
 def main(screen):
 
     counter = 0
+    knee_mistake = 0
 
     # Setup mediapipe instance
     with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
         while cam.isOpened():
             ret, frame = cam.read()
-            # img = cv2.flip(frame, 1)
+            img = cv2.flip(frame, 1)
 
             # Recolor image to RGB
-            image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             image.flags.writeable = False
 
             # Make detection
@@ -106,6 +165,9 @@ def main(screen):
                 ]
                 shoulder = [
                     landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x, landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y
+                ]
+                other_shoulder = [
+                    landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y
                 ]
                 elbow = [
                     landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value].x, landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value].y
@@ -146,12 +208,20 @@ def main(screen):
                             )
 
                 # Curl counter logic
-                if knee_angle > 150:
+                if knee_angle > 100:
                     stage = "up"
-                if knee_angle < 90 and stage == "up":
+                    knee_check = True
+                if knee_angle < 70 and stage == "up":
                     stage = "down"
                     counter += 1
-                    print(counter)
+
+                if knee_angle < 35 and knee_check == True:
+                    knee_check = False
+                    knee_mistake += 1
+                if abs(knee_angle - hip_angle) > 40:
+                    hips_check = False
+                if abs(shoulder[1] - other_shoulder[1])*100 > 10:
+                    shoulder_check = False
 
             except:
                 pass
@@ -183,41 +253,51 @@ def main(screen):
             cv2.imshow("WebCam", image)
             cv2.waitKey(1)
 
-            draw_window(screen, counter)
+            draw_window(screen, counter, knee_mistake)
 
-            pygame.display.update()
+            if counter == 10:
+                cam.release()
+                cv2.destroyWindow("WebCam")
 
             for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    break
-
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
-                        cam.release()
                         pygame.quit()
-                        cv2.destroyAllwindows()
-                        break
 
-        cam.release()
-        cv2.destroyAllwindows()
-        pygame.quit()
+    run = True
+    while run:
+        draw_feedback(screen, knee_mistake)
+        # pygame.display.update()
+
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    pygame.quit()
+                    break
+        # pygame.quit()
 
 
 # Menu screen that will lead to the main function
 def main_menu(screen):
+    # knee_mistake = 0
     run = True
     while run:
         screen.fill((150, 150, 150))
 
+        # create a surface object, image is drawn on it.
+        imp = pygame.image.load("firstScreen.jpg").convert()
+
+        # Using blit to copy content from one surface to other
+        screen.blit(imp, (0, 0))
+
+        # Drawing Rectangle
+        pygame.draw.rect(screen, (100, 240, 240), pygame.Rect(
+            s_width / 2 + 20, s_height - 120, s_width, s_height))
         font = pygame.font.SysFont("britannic", 60, bold=True)
-        label = font.render('Press Any Key To Start', 1, (27, 24, 217))
-        screen.blit(label, (s_width / 2 - 100, s_height - 100))
+        label = font.render('Press Any Key To Start', 1, (0, 0, 0))
+        screen.blit(label, (s_width / 2 + 80, s_height - 80))
 
-        pygame.display.update()
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                run = False
-
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     pygame.quit()
@@ -226,7 +306,9 @@ def main_menu(screen):
             if event.type == pygame.KEYDOWN:
                 main(screen)
 
-    pygame.quit()
+        pygame.display.update()
+
+    # pygame.quit()
 
 
 main_menu(screen)
