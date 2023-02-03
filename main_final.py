@@ -31,13 +31,12 @@ pygame.display.set_caption('Window name')
 # s_width, s_height = screen.get_size()
 s_width = screen.get_width()
 s_height = screen.get_height()
-print(s_width, s_height)
 
 # Curl counter variables
 counter = 0
 knee_mistake = 0
 stage = None
-buff_var = 0
+task_reps = 6
 
 
 def calculate_angle(a, b, c):
@@ -56,25 +55,31 @@ def calculate_angle(a, b, c):
 
 
 # draw the main window
-def draw_window(surface, counter=0, knee_mistake=0):
+def draw_window(surface, counter=0, knee_mistake=0, back_angle=0, task_reps=0):
     surface.fill((0, 0, 0))
 
     pygame.font.init()
     font = pygame.font.SysFont('britannic', 60)
     label = font.render('SquatCam', 1, (255, 255, 255))
-
     surface.blit(label, (s_width / 2 + 200, s_height / 2 - 420))
 
-    # show current reps
-    font = pygame.font.SysFont('britannic', 40)
-    label = font.render('reps: ' + str(counter), 1, (255, 255, 255))
+    label = font.render('Perform ' + str(task_reps) +
+                        ' squats', 1, (255, 255, 255))
     surface.blit(label, (s_width / 2, s_height / 2 - 200))
 
+    # show current reps
+    label = font.render('reps: ' + str(counter), 1, (255, 255, 255))
+    surface.blit(label, (s_width / 2, s_height / 2 - 100))
+
     # show knee mistakes
-    font = pygame.font.SysFont('britannic', 40)
     label = font.render('knee bended too much: ' +
                         str(knee_mistake), 1, (255, 255, 255))
-    surface.blit(label, (s_width / 2, s_height / 2 - 100))
+    surface.blit(label, (s_width / 2, s_height / 2))
+
+    # show back angle
+    label = font.render('back inclination: ' +
+                        str(back_angle), 1, (255, 255, 255))
+    surface.blit(label, (s_width / 2, s_height / 2 + 100))
 
     pygame.display.update()
 
@@ -88,7 +93,7 @@ def draw_feedback(surface, knee_mistake, shoulder_check, hips_check):
     surface.blit(label, (s_width / 2 - 30, s_height / 2 - 420))
 
     # create a surface object, image is drawn on it.
-    imp = pygame.image.load("Feedback.png").convert()
+    imp = pygame.image.load("feedback.png").convert()
 
     # Using blit to copy content from one surface to other
     screen.blit(imp, (s_width / 2 - 400, s_height / 2 - 330))
@@ -96,7 +101,6 @@ def draw_feedback(surface, knee_mistake, shoulder_check, hips_check):
     img_check = pygame.image.load("GreenCheck.png").convert_alpha()
     img_cross = pygame.image.load("RedCross.png").convert_alpha()
 
-    print(shoulder_check)
     # display green check or red cross
     if neck_check:
         screen.blit(img_check, (s_width / 2 - 500, s_height / 2 - 320))
@@ -128,10 +132,15 @@ def main(screen):
 
     counter = 0
     knee_mistake = 0
+    back_angle = 0
+    # task_reps = 10
 
     shoulder_check = True
     hips_check = True
     knee_check = True
+
+    effect = pygame.mixer.Sound('positive_beeps.wav')
+    sound_wrong = pygame.mixer.Sound('wrong.wav')
 
     # Setup mediapipe instance
     with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
@@ -211,23 +220,26 @@ def main(screen):
                                                             255, 255), 2, cv2.LINE_AA
                             )
 
+                back_angle = abs(knee_angle - hip_angle)
+                back_angle = round(back_angle, 1)
+
                 # Curl counter logic
-                if knee_angle > 120:
+                if knee_angle > 130:
                     stage = "up"
                     knee_check = True
-                if knee_angle < 95 and stage == "up":
+                if knee_angle < 100 and stage == "up":
                     stage = "down"
                     counter += 1
+                    effect.play()
 
                 if knee_angle < 35 and knee_check == True:
                     knee_check = False
                     knee_mistake += 1
-                if abs(knee_angle - hip_angle) > 40:
+                if back_angle > 40:
                     hips_check = False
+                    sound_wrong.play()
                 if abs(shoulder[1] - other_shoulder[1])*100 > 15:
                     shoulder_check = False
-
-                print(shoulder_check)
 
             except:
                 pass
@@ -259,9 +271,9 @@ def main(screen):
             cv2.imshow("WebCam", image)
             cv2.waitKey(1)
 
-            draw_window(screen, counter, knee_mistake)
+            draw_window(screen, counter, knee_mistake, back_angle, task_reps)
 
-            if counter == 4:
+            if counter == task_reps:
                 cam.release()
                 cv2.destroyWindow("WebCam")
 

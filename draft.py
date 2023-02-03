@@ -29,7 +29,7 @@ def draw_feedback(surface):
     surface.blit(label, (s_width / 2 - 30, s_height / 2 - 420))
 
     # create a surface object, image is drawn on it.
-    imp = pygame.image.load("Feedback.png").convert()
+    imp = pygame.image.load("feedback.png").convert()
 
     # Using blit to copy content from one surface to other
     screen.blit(imp, (s_width / 2 - 400, s_height / 2 - 330))
